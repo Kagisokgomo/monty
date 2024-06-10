@@ -1,0 +1,145 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define EXIT_FAILURE 1
+
+typedef struct stack_s
+{
+    int n;
+    struct stack_s *prev;
+    struct stack_s *next;
+} stack_t;
+
+stack_t *stack = NULL;
+
+// Function to add a new element to the stack (push)
+void push(int line_number, char *arg)
+{
+    int value;
+    stack_t *new_node;
+
+    if (arg == NULL || !isdigit(arg[0]) && arg[0] != '-')
+    {
+        fprintf(stderr, "L%d: usage: push integer\n", line_number);
+        exit(EXIT_FAILURE);
+    }
+
+    value = atoi(arg);
+    new_node = malloc(sizeof(stack_t));
+    if (!new_node)
+    {
+        perror("Error: malloc failed");
+        exit(EXIT_FAILURE);
+    }
+
+    new_node->n = value;
+    new_node->next = stack;
+    new_node->prev = NULL;
+
+    if (stack != NULL)
+        stack->prev = new_node;
+
+    stack = new_node;
+}
+
+// Function to print all elements of the stack (pall)
+void pall(int line_number)
+{
+    stack_t *current = stack;
+
+    (void)line_number;  // Unused parameter
+
+    while (current)
+    {
+        printf("%d\n", current->n);
+        current = current->next;
+    }
+}
+
+// Function to print the top element of the stack (pint)
+void pint(int line_number)
+{
+    if (!stack)
+    {
+        fprintf(stderr, "L%d: can't pint, stack empty\n", line_number);
+        exit(EXIT_FAILURE);
+    }
+    printf("%d\n", stack->n);
+}
+
+// Function to handle each line of bytecode
+void execute_line(char *line, int line_number)
+{
+    char *opcode = strtok(line, " \n\t");
+    char *arg = strtok(NULL, " \n\t");
+
+    if (opcode == NULL || opcode[0] == '#')
+        return;
+
+    if (strcmp(opcode, "push") == 0)
+    {
+        push(line_number, arg);
+    }
+    else if (strcmp(opcode, "pall") == 0)
+    {
+        pall(line_number);
+    }
+    else if (strcmp(opcode, "pint") == 0)
+    {
+        pint(line_number);
+    }
+    else
+    {
+        fprintf(stderr, "L%d: unknown instruction %s\n", line_number, opcode);
+        exit(EXIT_FAILURE);
+    }
+}
+
+// Function to read the file and execute its contents
+void process_file(const char *filename)
+{
+    FILE *file = fopen(filename, "r");
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    int line_number = 0;
+
+    if (file == NULL)
+    {
+        perror("Error: Can't open file");
+        exit(EXIT_FAILURE);
+    }
+
+    while ((read = getline(&line, &len, file)) != -1)
+    {
+        line_number++;
+        execute_line(line, line_number);
+    }
+
+    free(line);
+    fclose(file);
+}
+
+// Main function to start the interpreter
+int main(int argc, char *argv[])
+{
+    if (argc != 2)
+    {
+        fprintf(stderr, "USAGE: monty file\n");
+        return (EXIT_FAILURE);
+    }
+
+    process_file(argv[1]);
+
+    // Free the stack memory
+    while (stack)
+    {
+        stack_t *temp = stack;
+        stack = stack->next;
+        free(temp);
+    }
+
+    return (0);
+}
