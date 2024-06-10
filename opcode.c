@@ -13,7 +13,7 @@ void execute_line(char *line, unsigned int line_number, stack_t **stack)
     instruction_t instructions[] = {
         {"push", push},
         {"pall", pall},
-        {"pint", pint},
+        {"pint", pint}, // Add pint to the instructions set
         {NULL, NULL}
     };
     int i;
@@ -64,7 +64,7 @@ void process_file(const char *filename)
     while (getline(&line, &len, file) != -1)
     {
         line_number++;
-        execute_line(line, line_number);
+        execute_line(line, line_number, &stack);
     }
 
     free(line);
